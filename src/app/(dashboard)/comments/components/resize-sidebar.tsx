@@ -29,8 +29,9 @@ export const ResizeSidebar = ({ children }: { children: React.ReactNode }) => {
     <ResizablePanelGroup
       direction="horizontal"
       style={{ width: "calc(100% - 92px)" }}
+      className="text-[#3e5867] "
     >
-      <ResizablePanel defaultSize={12} maxSize={25} minSize={5}>
+      <ResizablePanel className="text-sm" defaultSize={15} maxSize={25} minSize={5}>
         <div className="h-[40px] py-2">
           <div className="flex items-center justify-center h-full">
             <div className="text-lg font-semibold flex  items-center gap-2">

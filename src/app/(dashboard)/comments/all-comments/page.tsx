@@ -1,9 +1,12 @@
+import { TableAllComments } from "./components/table-all-comments";
+
+
 const AllComments = () => {
-    return (
-        <div>
-            <h1>All Comments</h1>
-        </div>
-    );
-}
- 
+  return (
+    <section>
+        <TableAllComments />
+    </section>
+  );
+};
+
 export default AllComments;
