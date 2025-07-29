@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import ClerkAuthProvider from "@/components/commons/providers/clerk-auth-provider";
 import AppProvider from "@/components/commons/providers/app-provider";
 
 const geistSans = Geist({
@@ -24,15 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AppProvider>
+    <ClerkAuthProvider>
       <html lang="en" suppressHydrationWarning>
         <body
           suppressHydrationWarning
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
-          {children}
+          <AppProvider>{children}</AppProvider>
         </body>
       </html>
-    </AppProvider>
+    </ClerkAuthProvider>
   );
 }

@@ -1,6 +1,12 @@
-'use client'
+"use client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronDown, LogOut, Sun, CircleQuestionMark } from "lucide-react";
+import {
+  ChevronDown,
+  LogOut,
+  Sun,
+  CircleQuestionMark,
+  Moon,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +18,13 @@ import {
 import { useClerk } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTheme } from "next-themes";
 
 const LoginButton = () => {
   const { signOut, user } = useClerk();
+  const { setTheme, theme } = useTheme();
   const router = useRouter();
-  
-  console.log("user", user);
-  
+
   // Redirect to sign-in if no user
   useEffect(() => {
     if (user === null) {
@@ -49,15 +55,21 @@ const LoginButton = () => {
   }
 
   // Get user email safely
-  const userEmail = user.emailAddresses?.[0]?.emailAddress || user.primaryEmailAddress?.emailAddress || "No email";
-  
+  const userEmail =
+    user.emailAddresses?.[0]?.emailAddress ||
+    user.primaryEmailAddress?.emailAddress ||
+    "No email";
+
   // Get user name safely
-  const userName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : userEmail;
-  
+  const userName = user.firstName
+    ? `${user.firstName} ${user.lastName || ""}`.trim()
+    : userEmail;
+
   // Get user initials for avatar fallback
-  const initials = user.firstName && user.lastName 
-    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    : userEmail.charAt(0).toUpperCase();
+  const initials =
+    user.firstName && user.lastName
+      ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
+      : userEmail.charAt(0).toUpperCase();
 
   const handleSignOut = async () => {
     try {
@@ -75,7 +87,10 @@ const LoginButton = () => {
         <div className="flex h-full w-full items-center justify-end">
           <div className="cursor-pointer flex h-full w-fit items-center gap-2 hover:bg-yellow-600/30 px-2 font-medium text-white">
             <Avatar>
-              <AvatarImage src={user.imageUrl || "https://github.com/shadcn.png"} alt={userName} />
+              <AvatarImage
+                src={user.imageUrl || "https://github.com/shadcn.png"}
+                alt={userName}
+              />
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
             <span>{userName}</span>
@@ -83,16 +98,25 @@ const LoginButton = () => {
           </div>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="mr-1 max-w-32">
+      <DropdownMenuContent align="end" className="mr-1 max-w-38">
         <DropdownMenuLabel className="flex flex-col">
-          <span className="text-sm font-normal truncate">
-            {userEmail}
-          </span>
+          <span className="text-sm font-normal truncate">{userEmail}</span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <Sun />
-          Light
+        <DropdownMenuItem
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+        >
+          {theme === "light" ? (
+            <>
+              <Moon />
+              Dark
+            </>
+          ) : (
+            <>
+              <Sun />
+              Light
+            </>
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem>
           <CircleQuestionMark />
