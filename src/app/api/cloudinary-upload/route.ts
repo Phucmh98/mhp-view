@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    const files = formData.getAll("files"); // Expect files[] from client
+    const files = formData.getAll("files");
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
     if (!cloudName || !uploadPreset) {
@@ -17,20 +17,12 @@ export async function POST(req: NextRequest) {
       const data = new FormData();
       data.append("file", file);
       data.append("upload_preset", uploadPreset);
-      data.append("folder", "models"); // Thêm dòng này
+      data.append("folder", "models");
       const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
         method: "POST",
         body: data,
       });
-      let result;
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
-        result = await res.json();
-      } else {
-        const text = await res.text();
-        console.error("Cloudinary response is not JSON:", text);
-        return NextResponse.json({ error: "Cloudinary response is not JSON", details: text }, { status: 500 });
-      }
+      const result = await res.json();
       if (!res.ok) {
         return NextResponse.json({ error: result.error?.message || "Upload failed" }, { status: 400 });
       }

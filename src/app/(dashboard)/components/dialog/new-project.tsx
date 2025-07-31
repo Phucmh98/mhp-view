@@ -17,11 +17,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import z from "zod";
 
 const formSchema = z.object({
@@ -41,37 +41,30 @@ const NewProject = () => {
     },
   });
 
-  const onSubmit = async(data: z.infer<typeof formSchema>) => {
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
     console.log("New project created:", data);
-    // Upload trực tiếp lên Cloudinary
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-    if (!cloudName || !uploadPreset) {
-      alert("Thiếu cấu hình Cloudinary");
-      return;
-    }
-    const uploadedUrls: string[] = [];
-    for (const file of Array.from(data.files)) {
+    try {
       const formData = new FormData();
-      formData.append("file", file as File);
-      formData.append("upload_preset", uploadPreset);
-      formData.append("folder", "models");
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, {
+      Array.from(data.files).forEach((file) => {
+        formData.append("files", file as File);
+      });
+      // Nếu muốn gửi thêm nameProject về API thì thêm dòng sau:
+      formData.append("nameProject", data.nameProject);
+      const res = await fetch("/api/cloudinary-upload", {
         method: "POST",
         body: formData,
       });
       const result = await res.json();
       if (!res.ok) {
-        alert(result.error?.message || "Upload failed");
+        toast.error(data.nameProject + result.error || "Upload failed");
         return;
       }
-      uploadedUrls.push(result.secure_url);
+      console.log("Uploaded URLs:", result.urls);
+      setOpen(false);
+      form.reset();
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed");
     }
-    // uploadedUrls là mảng các URL file đã upload
-    console.log("Uploaded URLs:", uploadedUrls);
-    // TODO: Gửi uploadedUrls và nameProject về server để lưu vào database nếu cần
-    setOpen(false);
-    form.reset();
   };
 
   const handleCancel = () => {

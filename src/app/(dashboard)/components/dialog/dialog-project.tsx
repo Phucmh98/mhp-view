@@ -27,71 +27,18 @@ const sampleData = {
     {
       id: 1,
       name: "Example Model 1",
+      isActive: true,
+
       projects: [
         {
           id: 1,
           name: "Project Alpha",
-          image: "https://picsum.photos/300/300?random=1",
+          url: "/assets/files/examples/fileTest/0c0_06.glb",
         },
-        {
-          id: 2,
-          name: "Project Beta",
-          image: "https://picsum.photos/300/300?random=2",
-        },
-        {
-          id: 3,
-          name: "Project Gamma",
-          image: "https://picsum.photos/300/300?random=3",
-        },
+       
       ],
     },
-    {
-      id: 2,
-      name: "Example Model 2",
-      projects: [
-        {
-          id: 4,
-          name: "Project Delta",
-          image: "https://picsum.photos/300/300?random=4",
-        },
-        {
-          id: 5,
-          name: "Project Epsilon",
-          image: "https://picsum.photos/300/300?random=5",
-        },
-        {
-          id: 6,
-          name: "Project Zeta",
-          image: "https://picsum.photos/300/300?random=6",
-        },
-      ],
-    },
-    {
-      id: 3,
-      name: "Example Model 3",
-      projects: [
-        {
-          id: 7,
-          name: "Project Eta",
-          image: "https://picsum.photos/300/300?random=7",
-        },
-        {
-          id: 8,
-          name: "Project Theta",
-          image: "https://picsum.photos/300/300?random=8",
-        },
-        {
-          id: 9,
-          name: "Project Iota",
-          image: "https://picsum.photos/300/300?random=9",
-        },
-        {
-          id: 10,
-          name: "Project Kappa",
-          image: "https://picsum.photos/300/300?random=10",
-        },
-      ],
-    },
+    
   ],
 };
 
@@ -187,7 +134,7 @@ const CollapsibleProject = ({
 }: {
   id: number;
   name: string;
-  projects: { id: number; name: string; image: string }[];
+  projects: { id: number; name: string; url: string }[];
   isOpen: boolean;
   isStarred: boolean;
   onToggle: () => void;
@@ -231,13 +178,13 @@ const CollapsibleProject = ({
           />
         </div>
       </CollapsibleTrigger>
-      <CollapsibleContent className="grid gap-4 grid-cols-3 pt-4">
+      <CollapsibleContent className="pt-4">
         {projects.map((project) => (
           <CardProject
             key={project.id}
             id={project.id.toString()}
             name={project.name}
-            image={project.image}
+            url={project.url}
             onDelete={onDeleteProject}
           />
         ))}
@@ -249,62 +196,46 @@ const CollapsibleProject = ({
 const CardProject = ({
   id,
   name,
-  image,
+  url,
   onDelete,
 }: {
   id: string;
   name: string;
-  image: string;
+  url: string;
   onDelete?: (id: string) => void;
 }) => {
   const [isChecked, setIsChecked] = useState(false);
-
-  const handleCardClick = () => {
-    setIsChecked(!isChecked);
-  };
-
   const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Ngăn event bubbling để không trigger handleCardClick
+    e.stopPropagation();
     if (onDelete) {
       onDelete(id);
     }
   };
 
+  // Lấy tên file từ url
+  const fileName = url.split("/").pop();
+
   return (
     <div
-      className={`shadow-md rounded w-full h-[200px] min-w-[150px] flex flex-col overflow-hidden transition-all duration-200 hover:bg-black/5 cursor-pointer relative group ${
-        isChecked
-          ? "border-2 border-primary ring-2 ring-primary/20"
-          : "border border-gray-200"
-      }`}
-      onClick={handleCardClick}
+      className="flex items-center justify-between border rounded px-3 py-2 bg-white hover:bg-gray-50 transition-all cursor-pointer"
+      onClick={() => setIsChecked(!isChecked)}
     >
-      {/* Nút xóa */}
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={isChecked}
+          readOnly
+          className="form-checkbox h-4 w-4 text-primary pointer-events-none"
+        />
+        <span className="truncate font-medium">{fileName}</span>
+      </div>
       <button
         onClick={handleDeleteClick}
-        className="absolute top-2 right-2 z-10 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+        className="ml-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
         title="Xóa dự án"
       >
         <X className="w-3 h-3" />
       </button>
-
-      <div className="relative flex-1">
-        <Image src={image} alt={name} fill className="object-cover" />
-      </div>
-      <div className="p-2 py-3 flex justify-between items-center">
-        <Label
-          htmlFor={`checkbox-${id}`}
-          className="cursor-pointer flex-1 truncate"
-        >
-          {name}
-        </Label>
-        <Checkbox
-          id={`checkbox-${id}`}
-          checked={isChecked}
-          onCheckedChange={() => {}} // Để trống vì đã xử lý ở onClick của div cha
-          className="pointer-events-none" // Ngăn checkbox tự xử lý click
-        />
-      </div>
     </div>
   );
 };
