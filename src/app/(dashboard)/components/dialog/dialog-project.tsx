@@ -15,67 +15,48 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ChevronDown, Plus, StarIcon, X, Trash2 } from "lucide-react";
-import Image from "next/image";
 import { useState } from "react";
 import NewProject from "./new-project";
-
-// Dữ liệu mẫu cho các models và projects
-const sampleData = {
-  models: [
-    {
-      id: 1,
-      name: "Example Model 1",
-      isActive: true,
-
-      projects: [
-        {
-          id: 1,
-          name: "Project Alpha",
-          url: "/assets/files/examples/fileTest/0c0_06.glb",
-        },
-       
-      ],
-    },
-    
-  ],
-};
+import { useQuery } from "convex/react";
+import { api } from "../../../../../convex/_generated/api";
 
 const DialogProject = () => {
-  const [openModelId, setOpenModelId] = useState<number | null>(null);
-  const [starredModelId, setStarredModelId] = useState<number | null>(null);
-  const [modelsData, setModelsData] = useState(sampleData.models);
+  const objects = useQuery(api.containProjects.containProjects.getAllProjects); // gọi function vừa tạo
+  console.log('Objects:', objects);
+  const [openProjectId, setOpenProjectId] = useState<string | null>(null);
+  const [starredProjectId, setStarredProjectId] = useState<string | null>(null);
 
-  const handleModelToggle = (modelId: number) => {
-    setOpenModelId(openModelId === modelId ? null : modelId);
-    // Khi chọn model, cũng star nó luôn
-    setStarredModelId(modelId);
+  const handleProjectToggle = (projectId: string) => {
+    setOpenProjectId(openProjectId === projectId ? null : projectId);
+    // Khi chọn project, cũng star nó luôn
+    setStarredProjectId(projectId);
   };
 
-  const handleDeleteProject = (modelId: number, projectId: string) => {
-    setModelsData(prevModels => 
-      prevModels.map(model => 
-        model.id === modelId 
-          ? {
-              ...model,
-              projects: model.projects.filter(project => project.id !== parseInt(projectId))
-            }
-          : model
-      )
-    );
-  };
+  // Không cần delete functions nữa vì data từ server
+  // const handleDeleteProject = (modelId: number, projectId: string) => {
+  //   setModelsData(prevModels => 
+  //     prevModels.map(model => 
+  //       model.id === modelId 
+  //         ? {
+  //             ...model,
+  //             projects: model.projects.filter(project => project.id !== parseInt(projectId))
+  //           }
+  //         : model
+  //     )
+  //   );
+  // };
 
-  const handleDeleteModel = (modelId: number) => {
-    setModelsData(prevModels => prevModels.filter(model => model.id !== modelId));
-    // Nếu model bị xóa là model đang mở hoặc được star, reset state
-    if (openModelId === modelId) {
-      setOpenModelId(null);
-    }
-    if (starredModelId === modelId) {
-      setStarredModelId(null);
-    }
-  };
+  // const handleDeleteModel = (modelId: number) => {
+  //   setModelsData(prevModels => prevModels.filter(model => model.id !== modelId));
+  //   // Nếu model bị xóa là model đang mở hoặc được star, reset state
+  //   if (openProjectId === modelId) {
+  //     setOpenProjectId(null);
+  //   }
+  //   if (starredProjectId === modelId) {
+  //     setStarredProjectId(null);
+  //   }
+  // };
 
   return (
     <Dialog>
@@ -89,6 +70,7 @@ const DialogProject = () => {
         <DialogHeader className="pt-4 px-4 border-b-1">
           <DialogTitle className="text-xl">Projects</DialogTitle>
           <DialogDescription className="my-1.5 flex justify-between">
+            {/* Dialog New Project */}
             <NewProject/>
             <Input placeholder="Search..." className="ml-2 max-w-[200px]" />
           </DialogDescription>
@@ -103,17 +85,24 @@ const DialogProject = () => {
           <CardProject />
         </div> */}
         <div className="max-h-[80vh] overflow-y-auto p-3 space-y-4">
-          {modelsData.map((model) => (
-            <CollapsibleProject
-              key={model.id}
-              {...model}
-              isOpen={openModelId === model.id}
-              isStarred={starredModelId === model.id}
-              onToggle={() => handleModelToggle(model.id)}
-              onDeleteProject={(projectId: string) => handleDeleteProject(model.id, projectId)}
-              onDeleteModel={() => handleDeleteModel(model.id)}
-            />
-          ))}
+          {objects && objects.length > 0 ? (
+            objects.map((project) => (
+              <CollapsibleProject
+                key={project._id}
+                id={project._id}
+                name={project.name}
+                files={project.files || []}
+                fileMetaSrc={project.fileMetaSrc}
+                isOpen={openProjectId === project._id}
+                isStarred={starredProjectId === project._id}
+                onToggle={() => handleProjectToggle(project._id)}
+              />
+            ))
+          ) : (
+            <div className="text-center text-gray-500 py-8">
+              {objects === undefined ? "Đang tải..." : "Chưa có dự án nào"}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -125,27 +114,20 @@ export default DialogProject;
 const CollapsibleProject = ({
   id,
   name,
-  projects,
+  files,
+  fileMetaSrc,
   isOpen,
   isStarred,
   onToggle,
-  onDeleteProject,
-  onDeleteModel,
 }: {
-  id: number;
+  id: string;
   name: string;
-  projects: { id: number; name: string; url: string }[];
+  files: { name: string; storeId: string; size: number }[];
+  fileMetaSrc: string;
   isOpen: boolean;
   isStarred: boolean;
   onToggle: () => void;
-  onDeleteProject: (projectId: string) => void;
-  onDeleteModel: () => void;
 }) => {
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Ngăn event bubbling để không trigger onToggle
-    onDeleteModel();
-  };
-
   return (
     <Collapsible open={isOpen} className="">
       <CollapsibleTrigger
@@ -163,14 +145,6 @@ const CollapsibleProject = ({
           {name}
         </span>
         <div className="flex items-center gap-2">
-          {/* Nút xóa model */}
-          <div
-            onClick={handleDeleteClick}
-            className="w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-            title="Xóa model"
-          >
-            <Trash2 className="w-3 h-3" />
-          </div>
           <ChevronDown
             className={`w-4 h-4 transition-transform ${
               isOpen ? "rotate-180" : ""
@@ -179,15 +153,21 @@ const CollapsibleProject = ({
         </div>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-4">
-        {projects.map((project) => (
-          <CardProject
-            key={project.id}
-            id={project.id.toString()}
-            name={project.name}
-            url={project.url}
-            onDelete={onDeleteProject}
-          />
-        ))}
+        {files && files.length > 0 ? (
+          files.map((file, index) => (
+            <CardProject
+              key={`${id}-${index}`}
+              id={`${id}-${index}`}
+              name={file.name}
+              url={file.storeId}
+              size={file.size}
+            />
+          ))
+        ) : (
+          <div className="text-center text-gray-500 py-4">
+            Không có file nào trong dự án này
+          </div>
+        )}
       </CollapsibleContent>
     </Collapsible>
   );
@@ -197,11 +177,13 @@ const CardProject = ({
   id,
   name,
   url,
+  size,
   onDelete,
 }: {
   id: string;
   name: string;
   url: string;
+  size?: number;
   onDelete?: (id: string) => void;
 }) => {
   const [isChecked, setIsChecked] = useState(false);
@@ -212,8 +194,14 @@ const CardProject = ({
     }
   };
 
-  // Lấy tên file từ url
-  const fileName = url.split("/").pop();
+  // Format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
   return (
     <div
@@ -227,15 +215,22 @@ const CardProject = ({
           readOnly
           className="form-checkbox h-4 w-4 text-primary pointer-events-none"
         />
-        <span className="truncate font-medium">{fileName}</span>
+        <div className="flex flex-col">
+          <span className="truncate font-medium">{name}</span>
+          {size && (
+            <span className="text-xs text-gray-500">{formatFileSize(size)}</span>
+          )}
+        </div>
       </div>
-      <button
-        onClick={handleDeleteClick}
-        className="ml-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
-        title="Xóa dự án"
-      >
-        <X className="w-3 h-3" />
-      </button>
+      {onDelete && (
+        <button
+          onClick={handleDeleteClick}
+          className="ml-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center"
+          title="Xóa file"
+        >
+          <X className="w-3 h-3" />
+        </button>
+      )}
     </div>
   );
 };

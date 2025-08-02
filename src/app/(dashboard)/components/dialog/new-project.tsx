@@ -18,20 +18,40 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "convex/react";
+import { useUser } from "@clerk/nextjs";
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import z from "zod";
+import { api } from "../../../../../convex/_generated/api";
 
 const formSchema = z.object({
   nameProject: z.string().min(2).max(100),
-  files: z.any().refine((val) => val instanceof FileList && val.length > 0, {
-    message: "File is required",
+  files: z.any().refine((val) => {
+    if (!(val instanceof FileList) || val.length === 0) {
+      return false;
+    }
+    
+    // Kiểm tra file size (max 50MB per file)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    for (let i = 0; i < val.length; i++) {
+      if (val[i].size > maxSize) {
+        return false;
+      }
+    }
+    
+    return true;
+  }, {
+    message: "File is required and each file must be less than 50MB",
   }),
 });
 
 const NewProject = () => {
+  const { user, isLoaded } = useUser();
+  const generateUploadUrl = useMutation(api.files.files.generateUploadUrl);
+  const createProject = useMutation(api.containProjects.containProjects.createProject);
   const [open, setOpen] = useState(false);
   const inputRefFiles = useRef<HTMLInputElement>(null);
   const form = useForm<z.infer<typeof formSchema>>({
@@ -40,32 +60,68 @@ const NewProject = () => {
       nameProject: "",
     },
   });
-
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     console.log("New project created:", data);
+    // Kiểm tra authentication
+    if (!isLoaded) {
+      toast.error("Loading user information...");
+      return;
+    }
+    
+    if (!user) {
+      toast.error("Please sign in to upload files");
+      return;
+    }
+
     try {
-      const formData = new FormData();
-      Array.from(data.files).forEach((file) => {
-        formData.append("files", file as File);
-      });
-      // Nếu muốn gửi thêm nameProject về API thì thêm dòng sau:
-      formData.append("nameProject", data.nameProject);
-      const res = await fetch("/api/cloudinary-upload", {
-        method: "POST",
-        body: formData,
-      });
-      const result = await res.json();
-      if (!res.ok) {
-        toast.error(data.nameProject + result.error || "Upload failed");
-        return;
+      const uploadedFiles = [];
+      
+      // Upload từng file lên Convex
+      for (const file of Array.from(data.files) as File[]) {
+        
+        // 1. Lấy upload URL từ Convex
+        const uploadUrl = await generateUploadUrl();
+        
+        // 2. Upload file lên URL này
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          body: file, // Chỉ gửi file, không cần headers Content-Type
+        });
+        
+        
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Failed to upload ${file.name}: ${res.status} ${errorText}`);
+        }
+        
+        const result = await res.json();
+        const { storageId } = result;
+        
+        uploadedFiles.push({
+          storageId,
+          fileName: file.name,
+          fileType: file.type,
+          fileSize: file.size,
+        });
       }
-      console.log("Uploaded URLs:", result.urls);
+
+      // 3. Lưu thông tin project và files vào Convex database
+       await createProject({
+        idCreated: user.id, // Sử dụng user ID từ Clerk
+        name: data.nameProject,
+        files: uploadedFiles
+      });
+      
+      toast.success(`Project "${data.nameProject}" created with ${uploadedFiles.length} file(s)`);
+
       setOpen(false);
       form.reset();
     } catch (err: any) {
+      console.error("Upload error:", err);
       toast.error(err.message || "Upload failed");
     }
   };
+
 
   const handleCancel = () => {
     // Đóng dialog
