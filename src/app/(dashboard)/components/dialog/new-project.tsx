@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { useUser } from "@clerk/nextjs";
+import { useInvalidateProjects } from "@/queries/projects.queries";
 import { Plus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -50,6 +51,7 @@ const formSchema = z.object({
 
 const NewProject = () => {
   const { user, isLoaded } = useUser();
+  const invalidateProjects = useInvalidateProjects();
   const generateUploadUrl = useMutation(api.files.files.generateUploadUrl);
   const createProject = useMutation(api.containProjects.containProjects.createProject);
   const [open, setOpen] = useState(false);
@@ -111,6 +113,9 @@ const NewProject = () => {
         name: data.nameProject,
         files: uploadedFiles
       });
+      
+      // 4. Invalidate cache để refetch data
+      await invalidateProjects();
       
       toast.success(`Project "${data.nameProject}" created with ${uploadedFiles.length} file(s)`);
 

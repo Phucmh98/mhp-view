@@ -1,11 +1,17 @@
 "use client";
 
 import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { ClerkProvider, useAuth } from "@clerk/nextjs";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import {
+  QueryClient,
+  QueryClientProvider,
+  
+} from "@tanstack/react-query";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 
 const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+const queryClient = new QueryClient();
 
 export default function AppProvider({
   children,
@@ -15,8 +21,12 @@ export default function AppProvider({
   return (
     <ConvexProvider client={convex}>
       <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
-        {children}
-        <Toaster />
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster />
+          <ReactQueryDevtools initialIsOpen={false} />
+
+        </QueryClientProvider>
       </NextThemesProvider>
     </ConvexProvider>
   );
